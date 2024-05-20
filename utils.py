@@ -6,25 +6,7 @@ import torch.optim as optim
 import importlib.util
 
 
-def load_model(model_path: str, config) -> torch.nn.Module:
-    """
-    Load a PyTorch model from the specified file path.
-
-    Parameters:
-    - model_path (str): The file path of the model.
-
-    Returns:
-    - model (torch.nn.Module): The loaded PyTorch model.
-    """
-    # Loading model from file
-    spec = importlib.util.spec_from_file_location("model_module", model_path)
-    model_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(model_module)
-    model_class_name = config.get('model_class', 'Model')
-    model = getattr(model_module, model_class_name)()
-
-    return model
-def train_kd(student_model, teacher_model, train_loader, T, alpha, epochs):
+def train_kd(student_model, teacher_model, train_loader, T, alpha, epochs,lr):
     """
         Train a student model using knowledge distillation.
 
@@ -39,7 +21,7 @@ def train_kd(student_model, teacher_model, train_loader, T, alpha, epochs):
         Returns:
         - trained_student_model (torch.nn.Module): The trained student model.
         """
-    optimizer = optim.Adam(student_model.parameters(), lr=0.001)
+    optimizer = optim.Adam(student_model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     criterion_distill = nn.KLDivLoss(reduction='batchmean')
 

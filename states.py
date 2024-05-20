@@ -97,16 +97,17 @@ class KDAppState(AppState):
             epochs = default_kd['epochs']
             train_loader = default_kd['train_loader']
             learning_rate = default_kd['learning_rate']
-            temperature = default_kd['temperature']#
+            temperature = default_kd['temperature']
             alpha = default_kd['alpha']
             teacher_model = default_kd['teacher_model']
 
             self.store('default_kd', default_kd)
 
             self.log('Start Knowledge Distillation...')
-            self.log(f'Size of model before quantization: {pf.print_size_of_model(model)} MB')
+            self.log(f'Size of model before KD: {pf.print_size_of_model(teacher_model)} MB')
             # here kd training
-            data = pf.train_kd(student_model=model, teacher_model=teacher_model, train_loader=train_loader, T=temperature, alpha=alpha, epochs=epochs)
+            model = pf.train_kd(student_model=model, teacher_model=teacher_model, train_loader=train_loader, T= temperature, alpha=alpha, epochs=epochs, lr=learning_rate)
+            data = pf.get_weights(model)
 
             super().send_data_to_coordinator(data, **kwargs)
         else:
@@ -129,7 +130,7 @@ class InitialState(KDAppState):
         self.log('Reading configuration file ...')
 
         # Loading configuration from file
-        config = bios.read(f'{INPUT_DIR}/config_kd.yml')
+        config = bios.read(f'{INPUT_DIR}/config.yml')
 
         max_iterations = config['max_iter']
         self.store('iteration', 0)
@@ -157,10 +158,10 @@ class InitialState(KDAppState):
 
         # Loading and preparing initial model
         self.log('Preparing models ...')
-        techer_model_path = f"{INPUT_DIR}/{config['teacher_model']}"
+        teacher_model_path = f"{INPUT_DIR}/{config['teacher_model']}"
 
         # Loading model from file
-        spec = importlib.util.spec_from_file_location("model_module", techer_model_path)
+        spec = importlib.util.spec_from_file_location("model_module", teacher_model_path)
         model_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(model_module)
         model_class_name = config.get('model_class', 'Model')
@@ -177,7 +178,7 @@ class InitialState(KDAppState):
         model_class_name = config.get('model_class', 'Model')
         model = getattr(model_module, model_class_name)()
 
-        self.store('student_model_path', model)
+        self.store('model', model)
 
 
 
@@ -225,10 +226,8 @@ class LocalUpdate(KDAppState):
 
         # Receive global model from coordinator
         self.log('Receive model from coordinator')
-        print(model)
 
         pf.set_weights(model,received_data)
-        print(model)
 
         # Receive dataframe
         train_loader = self.load('train_loader')
@@ -236,11 +235,13 @@ class LocalUpdate(KDAppState):
         learning_rate = self.load('learning_rate')
         test_loader = self.load('test_loader')
         teacher_model = self.load('teacher_model')
-        temparature = self.load('temparature')
+        temperature = self.load('temperature')
         alpha = self.load('alpha')
 
 
-        self.configure_kd(epochs=epochs, learning_rate=learning_rate, student_model =model, teacher_model= teacher_model, train_loader=train_loader, temperature=temparature, alpha=alpha )
+
+
+        self.configure_kd(epochs=epochs, learning_rate=learning_rate, student_model =model, teacher_model= teacher_model, train_loader=train_loader, temperature=temperature, alpha=alpha )
 
         self.send_data_to_coordinator(model, use_kd=True, use_smpc=False, use_dp=False)
 
