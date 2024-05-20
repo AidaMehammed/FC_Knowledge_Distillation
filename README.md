@@ -1,4 +1,4 @@
-# [FeatureCloud Knowledge Distillation]()
+# [FeatureCloud Knowledge Distillation](https://featurecloud.ai/app/knowledge_distillation)
 ### Image Classification with Knowledge Distillation
 
 This App  facilitates the compression of deep neural network models through knowledge distillation. This technique transfers knowledge from a larger, complex model (the "teacher") to a smaller, simpler model (the "student"), resulting in reduced memory and computational requirements while maintaining performance.
